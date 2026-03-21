@@ -2,44 +2,44 @@
 
 # Bayaraja
 
-**Platform payment link QRIS untuk Indonesia.**
-Buat link pembayaran dengan nominal otomatis — pelanggan tinggal scan, langsung terbayar.
+**Self-hosted QRIS payment link platform for Indonesian merchants.**
+Create payment links with pre-filled amounts — customers just scan and pay.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Latest-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![License](https://img.shields.io/badge/license-MIT-orange)](#lisensi)
+[![License](https://img.shields.io/badge/license-MIT-orange)](#license)
 
 </div>
 
 ---
 
-## Apa itu Bayaraja?
+## What is Bayaraja?
 
-Bayaraja adalah platform open-source untuk membuat **payment link berbasis QRIS** yang bisa diintegrasikan ke toko online, sistem POS, atau aplikasi apapun.
+Bayaraja is an open-source platform for creating **QRIS-based payment links** that can be integrated into online stores, POS systems, or any application.
 
-**Masalah yang diselesaikan:** QRIS statis mengharuskan pelanggan mengetik nominal sendiri — rawan salah bayar. Bayaraja mengkonversi QRIS statis menjadi **QRIS dinamis** dengan nominal yang sudah tertanam, sehingga pelanggan cukup scan dan bayar.
+**The problem it solves:** Static QRIS codes require customers to type the amount manually — leading to incorrect payments. Bayaraja converts static QRIS into **dynamic QRIS** with the amount already embedded, so customers just scan and pay the exact amount.
 
 ```
-Kamu buat payment link → Kirim URL ke pelanggan → Pelanggan scan QR → Bayar dengan nominal pas
+You create a payment link → Send URL to customer → Customer scans QR → Pays the exact amount
 ```
 
 ---
 
-## Fitur Utama
+## Features
 
-| Fitur | Keterangan |
-|-------|------------|
-| 🔗 **Payment Link** | Buat link unik per transaksi, kirim via WhatsApp/email |
-| 📱 **QRIS Dinamis** | Nominal otomatis tertanam — pelanggan tidak perlu ketik manual |
-| 📸 **Bukti Pembayaran** | Pelanggan upload screenshot, merchant konfirmasi |
-| 📊 **Dashboard** | Statistik transaksi, pendapatan, dan status pembayaran real-time |
-| 🔑 **REST API** | Integrasikan ke sistem eksternal dengan API key |
-| ⚡ **Polling Status** | Client bisa polling status otomatis setelah upload bukti |
-| 🛡️ **Rate Limiting** | Perlindungan bawaan di setiap endpoint publik |
-| 🔐 **Auth** | Login aman via Supabase Auth (email + password) |
+| Feature | Description |
+|---------|-------------|
+| 🔗 **Payment Links** | Generate unique links per transaction, share via WhatsApp/email |
+| 📱 **Dynamic QRIS** | Amount auto-embedded in QR — no manual input needed |
+| 📸 **Payment Proof** | Customers upload transfer screenshots, merchant confirms |
+| 📊 **Dashboard** | Transaction stats, revenue overview, and real-time payment status |
+| 🔑 **REST API** | Integrate with external systems using API keys |
+| ⚡ **Status Polling** | Clients can poll payment status automatically after upload |
+| 🛡️ **Rate Limiting** | Built-in protection on every public endpoint |
+| 🔐 **Auth** | Secure login via Supabase Auth (email + password) |
 
 ---
 
@@ -48,41 +48,41 @@ Kamu buat payment link → Kirim URL ke pelanggan → Pelanggan scan QR → Baya
 - **Framework** — [Next.js 16](https://nextjs.org) App Router, React Server Components, Suspense Streaming
 - **Backend** — [Supabase](https://supabase.com) (PostgreSQL, Auth, Storage)
 - **Styling** — [Tailwind CSS v4](https://tailwindcss.com)
-- **Validasi** — [Zod v4](https://zod.dev)
+- **Validation** — [Zod v4](https://zod.dev)
 - **QR Code** — [`qrcode`](https://github.com/soldair/node-qrcode) (generate) + [`jsqr`](https://github.com/cozmo/jsQR) (scan/parse)
 - **Icons** — [Lucide React](https://lucide.dev)
 - **Language** — TypeScript 5
 
 ---
 
-## Memulai
+## Getting Started
 
-### Prasyarat
+### Prerequisites
 
 - Node.js 18+
-- Akun [Supabase](https://supabase.com) (gratis)
+- A [Supabase](https://supabase.com) account (free tier works)
 
-### 1. Clone repo
+### 1. Clone the repo
 
 ```bash
-git clone https://github.com/username/bayaraja.git
+git clone https://github.com/akbarr13/bayaraja.git
 cd bayaraja
 npm install
 ```
 
-### 2. Setup Supabase
+### 2. Set up Supabase
 
-1. Buat project baru di [supabase.com](https://supabase.com)
-2. Buka **SQL Editor** dan jalankan seluruh isi [`supabase/schema.sql`](supabase/schema.sql)
-3. Aktifkan **Storage**, buat bucket bernama `payment-proofs` (private)
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Open the **SQL Editor** and run the full contents of [`supabase/schema.sql`](supabase/schema.sql)
+3. Enable **Storage** and create a private bucket named `payment-proofs`
 
-### 3. Konfigurasi environment
+### 3. Configure environment variables
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Isi `.env.local` dengan kredensial dari dashboard Supabase kamu:
+Fill in `.env.local` with your Supabase credentials:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -91,19 +91,19 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-> **Penting:** `SUPABASE_SERVICE_ROLE_KEY` hanya digunakan server-side. Jangan pernah expose ke client.
+> **Important:** `SUPABASE_SERVICE_ROLE_KEY` is used server-side only. Never expose it to the client.
 
-### 4. Jalankan dev server
+### 4. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000), daftar akun, tambah QRIS, dan mulai buat payment link.
+Open [http://localhost:3000](http://localhost:3000), register an account, add your QRIS, and start creating payment links.
 
 ---
 
-## Cara Kerja
+## How It Works
 
 ```
 ┌─────────────┐   POST /api/links    ┌──────────────────┐
@@ -111,21 +111,21 @@ Buka [http://localhost:3000](http://localhost:3000), daftar akun, tambah QRIS, d
 │ (Dashboard) │ ◄──────────────────  │                  │
 └─────────────┘   { payment_url }   └────────┬─────────┘
                                              │
-                       Kirim URL ke pelanggan│
+                        Send URL to customer │
                                              ▼
 ┌─────────────┐   GET /pay/{slug}    ┌──────────────────┐
-│  Pelanggan  │ ──────────────────► │  Halaman Bayar   │
+│  Customer   │ ──────────────────► │   Payment Page   │
 │  (Browser)  │                      │                  │
-│             │  Scan QR & Upload    │  QRIS Dinamis +  │
-└─────────────┘     Bukti            │   Upload Form    │
+│             │  Scan QR & Upload    │  Dynamic QRIS +  │
+└─────────────┘   Payment Proof      │   Upload Form    │
                                      └──────────────────┘
 ```
 
-1. Merchant buat payment link via dashboard atau API
-2. Bayaraja generate QRIS dinamis (nominal sudah tertanam)
-3. Merchant kirim URL ke pelanggan (WhatsApp, email, dll)
-4. Pelanggan buka URL → scan QR → bayar → upload bukti
-5. Merchant konfirmasi di dashboard → transaksi selesai
+1. Merchant creates a payment link via dashboard or API
+2. Bayaraja generates a dynamic QRIS with the amount embedded
+3. Merchant sends the URL to the customer (WhatsApp, email, etc.)
+4. Customer opens the URL → scans QR → pays → uploads proof
+5. Merchant confirms in the dashboard → transaction complete
 
 ---
 
@@ -133,19 +133,19 @@ Buka [http://localhost:3000](http://localhost:3000), daftar akun, tambah QRIS, d
 
 Base URL: `https://your-domain.com`
 
-Semua endpoint memerlukan header:
+All API endpoints require:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
 
-API key dibuat di **Dashboard → Pengaturan → API Keys**.
+Generate API keys in **Dashboard → Settings → API Keys**.
 
 ---
 
 ### `POST /api/qris/create-amount`
 
-Generate QRIS dinamis dengan nominal tertentu.
+Generate a dynamic QRIS with a specific amount.
 
 ```bash
 curl -X POST https://your-domain.com/api/qris/create-amount \
@@ -174,14 +174,14 @@ curl -X POST https://your-domain.com/api/qris/create-amount \
 
 ### `POST /api/links`
 
-Buat payment link baru.
+Create a new payment link.
 
 ```bash
 curl -X POST https://your-domain.com/api/links \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "qris_account_id": "uuid-qris-kamu",
+    "qris_account_id": "your-qris-uuid",
     "title": "Order #42",
     "amount": 75000,
     "is_single_use": true
@@ -209,7 +209,7 @@ curl -X POST https://your-domain.com/api/links \
 
 ### `GET /api/pay/{slug}/status`
 
-Cek status pembayaran suatu payment link.
+Check the payment status of a payment link.
 
 ```bash
 curl https://your-domain.com/api/pay/abc123xyz/status \
@@ -241,103 +241,103 @@ curl https://your-domain.com/api/pay/abc123xyz/status \
 
 ### Error Codes
 
-| Kode | Artinya |
+| Code | Meaning |
 |------|---------|
-| `200` | Berhasil |
-| `400` | Request tidak valid — cek format body atau parameter |
-| `401` | API key tidak ada, salah, atau sudah dinonaktifkan |
-| `404` | Data tidak ditemukan |
-| `429` | Rate limit tercapai — tunggu sebentar lalu coba lagi |
+| `200` | Success |
+| `400` | Invalid request — check body format or parameters |
+| `401` | Missing, invalid, or disabled API key |
+| `404` | Resource not found |
+| `429` | Rate limit reached — wait and try again |
 | `500` | Server error |
 
-Semua error response berformat: `{ "error": "pesan error" }`
+All error responses follow the format: `{ "error": "error message" }`
 
 ---
 
-## Struktur Proyek
+## Project Structure
 
 ```
 bayaraja/
 ├── app/
-│   ├── (auth)/          # Halaman login & register
-│   ├── (dashboard)/     # Dashboard merchant (protected)
-│   │   ├── dashboard/   # Statistik & transaksi terbaru
-│   │   ├── links/       # Kelola payment links
-│   │   ├── qris/        # Kelola akun QRIS
-│   │   ├── settings/    # Profil, password, API keys
-│   │   └── docs/        # Dokumentasi API interaktif
+│   ├── (auth)/          # Login & register pages
+│   ├── (dashboard)/     # Protected merchant dashboard
+│   │   ├── dashboard/   # Stats & recent transactions
+│   │   ├── links/       # Manage payment links
+│   │   ├── qris/        # Manage QRIS accounts
+│   │   ├── settings/    # Profile, password, API keys
+│   │   └── docs/        # Interactive API documentation
 │   ├── api/             # API routes
-│   ├── pay/[slug]/      # Halaman pembayaran publik
+│   ├── pay/[slug]/      # Public payment page
 │   └── page.tsx         # Landing page
 ├── components/
-│   ├── ui/              # Komponen UI dasar (Modal, Toast, dll)
-│   ├── dashboard/       # Komponen khusus dashboard
-│   ├── pay/             # Komponen halaman pembayaran
-│   └── layout/          # Sidebar, header, navigasi
+│   ├── ui/              # Base UI components (Modal, Toast, etc.)
+│   ├── dashboard/       # Dashboard-specific components
+│   ├── pay/             # Payment page components
+│   └── layout/          # Sidebar, header, navigation
 ├── lib/
-│   ├── qris.ts          # Algoritma konversi QRIS EMV-CO (static → dynamic)
+│   ├── qris.ts          # EMV-CO QRIS conversion (static → dynamic)
 │   ├── validations.ts   # Zod schemas
 │   ├── types.ts         # TypeScript interfaces
-│   └── supabase/        # Supabase client (server & browser)
+│   └── supabase/        # Supabase clients (server & browser)
 └── supabase/
-    └── schema.sql       # Skema database lengkap
+    └── schema.sql       # Full database schema
 ```
 
 ---
 
-## Batasan Default
+## Default Limits
 
-| Item | Batas |
+| Item | Limit |
 |------|-------|
-| Akun QRIS per user | 10 |
+| QRIS accounts per user | 10 |
 | Payment links per user | 100 |
 | API keys per user | 5 |
-| Ukuran file upload | 5 MB |
-| Format file upload | JPEG, PNG, WebP |
+| Upload file size | 5 MB |
+| Upload file formats | JPEG, PNG, WebP |
 
 ---
 
-## Deploy
+## Deployment
 
-### Vercel (Paling Mudah)
+### Vercel (Easiest)
 
-1. Fork repo ini
-2. Import ke [Vercel](https://vercel.com/new)
-3. Isi environment variables
-4. Deploy otomatis setiap push ke `main`
+1. Fork this repo
+2. Import to [Vercel](https://vercel.com/new)
+3. Add environment variables
+4. Deploy — auto-deploys on every push to `main`
 
 ### cPanel / VPS
 
-Bayaraja dikonfigurasi dengan `output: standalone`.
+Bayaraja is configured with `output: standalone`.
 
 ```bash
 npm run build
-# Upload .next/standalone/ + public/ ke server
-# Jalankan: node .next/standalone/server.js
+# Upload .next/standalone/ + public/ to your server
+# Run: node .next/standalone/server.js
 ```
 
-Untuk cPanel, gunakan Phusion Passenger dengan `app.js` yang me-require `server.js`.
+For cPanel, use Phusion Passenger pointed at a `app.js` entry file that requires `server.js`.
 
 ---
 
-## Kontribusi
+## Contributing
 
-Pull request terbuka untuk siapa saja. Untuk perubahan besar, buka issue dulu.
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
 
-1. Fork repo
-2. Buat branch: `git checkout -b feat/nama-fitur`
-3. Commit: `git commit -m 'feat: tambah fitur X'`
-4. Push: `git push origin feat/nama-fitur`
-5. Buka Pull Request
+1. Fork the repo
+2. Create a branch: `git checkout -b feat/your-feature`
+3. Commit: `git commit -m 'feat: add your feature'`
+4. Push: `git push origin feat/your-feature`
+5. Open a Pull Request
 
 ---
 
-## Lisensi
+## License
 
-[MIT](LICENSE) — bebas digunakan, dimodifikasi, dan didistribusikan.
+[MIT](LICENSE) — free to use, modify, and distribute.
 
 ---
 
 <div align="center">
-  <sub>Dibuat untuk merchant Indonesia 🇮🇩</sub>
+  <sub>Built for Indonesian merchants 🇮🇩</sub>
 </div>
