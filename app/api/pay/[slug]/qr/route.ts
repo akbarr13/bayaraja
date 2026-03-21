@@ -29,7 +29,8 @@ export async function GET(
       return new NextResponse(null, { status: 410 })
     }
 
-    const qrisStatic = (link.qris_account as { qris_string: string }).qris_string
+    const account = Array.isArray(link.qris_account) ? link.qris_account[0] : link.qris_account
+    const qrisStatic = (account as { qris_string: string }).qris_string
     const qrisDynamic = convertQrisDinamis(qrisStatic, link.amount)
 
     let pngBuffer = qrCache.get(qrisDynamic)
@@ -42,7 +43,7 @@ export async function GET(
       qrCache.set(qrisDynamic, pngBuffer)
     }
 
-    return new NextResponse(pngBuffer, {
+    return new NextResponse(new Uint8Array(pngBuffer), {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=3600',
