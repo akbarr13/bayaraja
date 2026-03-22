@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { createSessionSupabase } from '@/lib/supabase/server'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { RecentTransactions } from '@/components/dashboard/recent-transactions'
+import { TrendsChart } from '@/components/dashboard/charts'
 import { Card } from '@/components/ui/card'
 import type { DashboardStats, Transaction } from '@/lib/types'
 
@@ -88,6 +89,7 @@ export default function DashboardPage() {
       <Suspense fallback={<StatsCardsSkeleton />}>
         <StatsCardsLoader />
       </Suspense>
+      <TrendsChart />
       <Suspense fallback={<RecentTransactionsSkeleton />}>
         <RecentTransactionsLoader />
       </Suspense>

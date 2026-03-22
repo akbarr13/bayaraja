@@ -56,8 +56,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.15; transform: scale(1); }
-  50%       { opacity: 0.25; transform: scale(1.08); }
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.28; }
 }
 
 @keyframes slide-right {
@@ -77,6 +77,24 @@ h1, h2, h3, h4, h5, h6 {
 .animate-float       { animation: float 6s ease-in-out infinite; }
 .animate-glow-pulse  { animation: glow-pulse 4s ease-in-out infinite; }
 .animate-slide-right { animation: slide-right 0.5s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-pulse,
+  .animate-float,
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-slide-right {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .reveal,
+  .reveal-left {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
 
 /* Scroll-triggered: starts hidden, JS adds .is-visible */
 .reveal {

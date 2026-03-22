@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { ALLOWED_IMAGE_TYPES, LIMITS, MIME_TO_EXT } from '@/lib/constants'
+import { fireWebhooks } from '@/lib/webhook'
+import { ApiError } from '@/lib/api-errors'
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -23,19 +25,18 @@ export async function POST(req: NextRequest) {
     const payerEmail = (formData.get('payer_email') as string) || null
 
     if (!paymentLinkId || !file) {
-      return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 })
+      return ApiError.badRequest('Data tidak lengkap.')
     }
 
-    // Validate MIME type
     if (!ALLOWED_IMAGE_TYPES.includes(file.type as typeof ALLOWED_IMAGE_TYPES[number])) {
-      return NextResponse.json({ error: 'Tipe file tidak diizinkan.' }, { status: 400 })
+      return ApiError.badRequest('Tipe file tidak diizinkan.')
     }
 
     if (file.size > LIMITS.maxFileSize) {
-      return NextResponse.json({ error: 'Ukuran file maksimal 5MB.' }, { status: 400 })
+      return ApiError.badRequest('Ukuran file maksimal 5MB.')
     }
 
-    // Rate limit and link verification in parallel
+    // Rate limit (global IP) + link verification in parallel
     const [{ data: allowed }, { data: link }] = await Promise.all([
       sb.rpc('check_rate_limit', {
         p_ip: ip,
@@ -50,19 +51,41 @@ export async function POST(req: NextRequest) {
         .single(),
     ])
 
-    if (allowed === false) {
-      return NextResponse.json(
-        { error: 'Terlalu banyak request. Coba lagi nanti.' },
-        { status: 429, headers: { 'Retry-After': '60' } }
-      )
-    }
+    if (allowed === false) return ApiError.tooManyRequests()
 
     if (!link || !link.is_active) {
-      return NextResponse.json({ error: 'Payment link tidak valid.' }, { status: 404 })
+      return ApiError.notFound('Payment link tidak valid.')
     }
 
     if (link.expires_at && new Date(link.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Payment link sudah kadaluarsa.' }, { status: 410 })
+      return ApiError.gone('Payment link sudah kadaluarsa.')
+    }
+
+    // Per-IP-per-link rate limit + pending cap in parallel
+    const [{ data: allowedPerLink }, { count: pendingCount }] = await Promise.all([
+      sb.rpc('check_rate_limit', {
+        p_ip: ip,
+        p_endpoint: `upload-proof:${link.id}`,
+        p_max: LIMITS.rateLimit.paymentProofPerLink.max,
+        p_window_seconds: LIMITS.rateLimit.paymentProofPerLink.windowSeconds,
+      }),
+      sb
+        .from('transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('payment_link_id', link.id)
+        .eq('status', 'pending'),
+    ])
+
+    if (allowedPerLink === false) return ApiError.tooManyRequests()
+
+    if (pendingCount !== null && pendingCount >= LIMITS.pendingPerLink) {
+      return ApiError.conflict('Terlalu banyak bukti pembayaran menunggu konfirmasi. Silakan coba lagi nanti.')
+    }
+
+    if (link.is_single_use) {
+      if (pendingCount && pendingCount > 0) {
+        return ApiError.conflict('Bukti pembayaran sudah dikirim. Silakan tunggu konfirmasi penjual.')
+      }
     }
 
     // Create transaction first to get ID
@@ -81,9 +104,7 @@ export async function POST(req: NextRequest) {
       .select('id')
       .single()
 
-    if (txErr || !tx) {
-      return NextResponse.json({ error: 'Gagal membuat transaksi.' }, { status: 500 })
-    }
+    if (txErr || !tx) return ApiError.serverError('Gagal membuat transaksi.')
 
     // Upload file
     const ext = MIME_TO_EXT[file.type] ?? 'jpg'
@@ -112,9 +133,18 @@ export async function POST(req: NextRequest) {
       throw updateErr
     }
 
+    // Fire webhook async — do not await, never block
+    fireWebhooks(link.user_id, 'transaction.created', {
+      transaction_id: tx.id,
+      payment_link_id: link.id,
+      amount: link.amount,
+      payer_name: payerName,
+      payer_email: payerEmail,
+    })
+
     return NextResponse.json({ success: true, transaction_id: tx.id })
   } catch (e) {
     console.error('upload-proof error:', e)
-    return NextResponse.json({ error: 'Server error.' }, { status: 500 })
+    return ApiError.serverError()
   }
 }

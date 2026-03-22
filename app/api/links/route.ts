@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { paymentLinkSchema } from '@/lib/validations'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
 import { nanoid } from 'nanoid'
 import crypto from 'crypto'
 
@@ -63,7 +65,26 @@ export async function POST(req: NextRequest) {
   const resolved = await resolveUser(req)
   if (!resolved) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const allowed = await checkUserRateLimit(
+    resolved.userId, 'links', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds
+  )
+  if (!allowed) {
+    return NextResponse.json({ error: 'Terlalu banyak request.' }, { status: 429, headers: { 'Retry-After': '60' } })
+  }
+
   const sb = createServerSupabase()
+
+  const { count: linkCount } = await sb
+    .from('payment_links')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', resolved.userId)
+
+  if ((linkCount ?? 0) >= LIMITS.maxPaymentLinks) {
+    return NextResponse.json(
+      { error: `Maksimal ${LIMITS.maxPaymentLinks} payment link per akun.` },
+      { status: 400 }
+    )
+  }
 
   try {
     const body = await req.json()

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabase } from '@/lib/supabase/server'
+import { createServerSupabase, createSessionSupabase } from '@/lib/supabase/server'
 
 function getClientIp(req: NextRequest): string {
   return (
@@ -30,6 +30,26 @@ export async function GET(
     )
   }
 
+  // If authenticated, verify ownership via payment_links join
+  const sessionSupabase = await createSessionSupabase()
+  const { data: { user } } = await sessionSupabase.auth.getUser()
+
+  if (user) {
+    const { data, error } = await sb
+      .from('transactions')
+      .select('status, payment_links!inner(user_id)')
+      .eq('id', id)
+      .eq('payment_links.user_id', user.id)
+      .single()
+
+    if (error || !data) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    return NextResponse.json({ status: data.status })
+  }
+
+  // Unauthenticated (customer polling): only expose status, no ownership check needed
+  // Transaction IDs are random UUIDs and only status field is returned
   const { data, error } = await sb
     .from('transactions')
     .select('status')

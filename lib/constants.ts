@@ -19,9 +19,12 @@ export const LIMITS = {
   maxFileSize: 5 * 1024 * 1024, // 5MB
   rateLimit: {
     paymentProof: { max: 5, windowSeconds: 600 },
+    paymentProofPerLink: { max: 3, windowSeconds: 600 },
     createAmount: { max: 60, windowSeconds: 60 },
     publicPay: { max: 30, windowSeconds: 60 },
+    authenticated: { max: 30, windowSeconds: 60 },
   },
+  pendingPerLink: 30,
 } as const
 
 export const ALLOWED_IMAGE_TYPES = [

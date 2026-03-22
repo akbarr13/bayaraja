@@ -70,7 +70,9 @@ export default function RegisterPage() {
     <div>
       {/* Mobile logo */}
       <div className="mb-8 lg:hidden">
-        <span className="text-xl font-heading font-bold text-[#1E293B]">Bayaraja</span>
+        <Link href="/" className="text-xl font-heading font-bold text-[#1E293B] hover:opacity-70 transition-opacity">
+          Bayaraja
+        </Link>
       </div>
 
       <h1 className="text-2xl font-heading font-bold text-[#1E293B]">Buat akun</h1>

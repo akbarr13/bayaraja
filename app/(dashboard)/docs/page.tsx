@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/clipboard'
 
 const BASE_URL = 'https://bayaraja.com'
 
 function Code({ children }: { children: string }) {
   const [copied, setCopied] = useState(false)
   function copy() {
-    navigator.clipboard.writeText(children)
+    copyToClipboard(children)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -102,7 +103,9 @@ function Endpoint({
 const sections = [
   { id: 'autentikasi', label: 'Autentikasi' },
   { id: 'qris', label: 'Generate QRIS' },
-  { id: 'links', label: 'Buat Payment Link' },
+  { id: 'links', label: 'Payment Links' },
+  { id: 'transactions', label: 'Transaksi' },
+  { id: 'webhooks', label: 'Webhooks' },
   { id: 'status', label: 'Cek Status Bayar' },
   { id: 'errors', label: 'Error Codes' },
 ]
@@ -264,6 +267,132 @@ const poll = setInterval(async () => {
     // update order di sistem kamu
   }
 }, 10000)`}</Code>
+          </div>
+        </Section>
+
+        {/* Transactions */}
+        <Section id="transactions" title="Transaksi">
+          <p className="text-sm text-gray-600">
+            Ambil daftar transaksi dengan filter dan pagination. Cocok untuk sinkronisasi ke sistem order kamu.
+          </p>
+
+          <Endpoint
+            method="GET"
+            path="/api/transactions"
+            auth="api-key"
+            description="Daftar transaksi dengan pagination dan filter opsional."
+            response={`{
+  "data": [
+    {
+      "id": "uuid",
+      "payment_link_id": "uuid",
+      "amount": 75000,
+      "payer_name": "Budi Santoso",
+      "payer_email": null,
+      "status": "confirmed",
+      "created_at": "2026-03-21T10:00:00Z",
+      "payment_link": { "title": "Order #42", "slug": "abc123" }
+    }
+  ],
+  "total": 84,
+  "page": 0,
+  "limit": 20
+}`}
+            note="Query params: page (default 0), limit (default 20, max 100), status (pending|confirmed|rejected), link_id, from, to (ISO date)."
+          />
+
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Contoh dengan filter</p>
+            <Code>{`curl "${BASE_URL}/api/transactions?status=pending&limit=10" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`}</Code>
+          </div>
+
+          <Endpoint
+            method="GET"
+            path="/api/transactions/export"
+            auth="session"
+            description="Download semua transaksi sebagai file CSV. Mendukung filter yang sama dengan endpoint list."
+            response={`ID,Tanggal,Link,Slug,Pembayar,Email,Nominal,Status,Catatan
+uuid,"21/3/2026 10.00.00","Order #42","abc123","Budi",,"75000","confirmed",`}
+            note="Response adalah file CSV dengan BOM (UTF-8) — langsung bisa dibuka di Excel. Hanya tersedia via session (dashboard), bukan API key."
+          />
+        </Section>
+
+        {/* Webhooks */}
+        <Section id="webhooks" title="Webhooks">
+          <p className="text-sm text-gray-600">
+            Daftarkan URL yang akan di-POST setiap kali ada event transaksi. Kelola webhook di halaman{' '}
+            <a href="/settings" className="text-primary underline">Pengaturan → Webhooks</a>.
+          </p>
+
+          <div className="rounded-xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 space-y-4">
+              <p className="text-sm font-semibold text-text">Events yang tersedia</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  { event: 'transaction.created', desc: 'Pelanggan upload bukti bayar' },
+                  { event: 'transaction.confirmed', desc: 'Kamu konfirmasi pembayaran' },
+                  { event: 'transaction.rejected', desc: 'Kamu tolak pembayaran' },
+                ].map((e) => (
+                  <div key={e.event} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                    <code className="text-xs font-mono text-primary">{e.event}</code>
+                    <p className="text-xs text-gray-500 mt-1">{e.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Format payload</p>
+            <Code>{`// POST ke URL webhook kamu
+{
+  "event": "transaction.created",
+  "created_at": "2026-03-21T10:00:00Z",
+  "data": {
+    "transaction_id": "uuid",
+    "payment_link_id": "uuid",
+    "amount": 75000,
+    "payer_name": "Budi Santoso",
+    "payer_email": null
+  }
+}`}</Code>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Verifikasi signature</p>
+            <Code>{`// Setiap request webhook punya header:
+// X-Bayaraja-Event: transaction.created
+// X-Bayaraja-Signature: sha256=<hmac>
+
+// Verifikasi dengan secret yang didapat saat buat webhook:
+const crypto = require('crypto')
+
+function verifyWebhook(body, signature, secret) {
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(body)
+    .digest('hex')
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  )
+}
+
+// Express.js contoh:
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['x-bayaraja-signature']
+  if (!verifyWebhook(req.body, sig, process.env.WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature')
+  }
+  const payload = JSON.parse(req.body)
+  console.log('Event:', payload.event)
+  res.sendStatus(200)
+})`}</Code>
+          </div>
+
+          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>Catatan:</strong> Webhook dikirim dengan timeout 5 detik. Jika URL tidak merespons, pengiriman dianggap gagal (tidak ada retry). Pastikan endpoint kamu cepat merespons (200 OK) sebelum memproses event.
           </div>
         </Section>
 

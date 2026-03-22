@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { transactionStatusSchema } from '@/lib/validations'
+import { fireWebhooks } from '@/lib/webhook'
 
 async function getSupabaseWithUser() {
   const cookieStore = await cookies()
@@ -56,27 +57,31 @@ export async function PATCH(
     }
 
     // If confirmed and link is single-use, deactivate the link
-    if (parsed.status === 'confirmed') {
-      const { data: tx } = await supabase
-        .from('transactions')
-        .select('payment_link_id')
-        .eq('id', id)
+    if (parsed.status === 'confirmed' && data.payment_link_id) {
+      const { data: link } = await supabase
+        .from('payment_links')
+        .select('is_single_use')
+        .eq('id', data.payment_link_id)
         .single()
 
-      if (tx) {
-        const { data: link } = await supabase
+      if (link?.is_single_use) {
+        await supabase
           .from('payment_links')
-          .select('is_single_use')
-          .eq('id', tx.payment_link_id)
-          .single()
-
-        if (link?.is_single_use) {
-          await supabase
-            .from('payment_links')
-            .update({ is_active: false })
-            .eq('id', tx.payment_link_id)
-        }
+          .update({ is_active: false })
+          .eq('id', data.payment_link_id)
       }
+    }
+
+    // Fire webhook async
+    if (parsed.status === 'confirmed' || parsed.status === 'rejected') {
+      const eventName = parsed.status === 'confirmed'
+        ? 'transaction.confirmed' as const
+        : 'transaction.rejected' as const
+      fireWebhooks(user.id, eventName, {
+        transaction_id: id,
+        status: parsed.status,
+        notes: parsed.notes ?? null,
+      })
     }
 
     return NextResponse.json({ data })

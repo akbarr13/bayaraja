@@ -8,11 +8,11 @@ export default function LandingPage() {
 
       {/* Hero + Navbar */}
       <section className="relative overflow-hidden px-6 pb-28 pt-8">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="animate-glow-pulse h-[600px] w-[600px] rounded-full bg-blue-600/15 blur-[140px]" />
+        <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+          <div className="animate-glow-pulse h-[500px] w-[500px] rounded-full bg-blue-600/15 blur-[100px]" />
         </div>
-        <div className="absolute top-0 right-0 pointer-events-none">
-          <div className="animate-glow-pulse h-[300px] w-[300px] rounded-full bg-orange-500/10 blur-[100px]"
+        <div className="absolute top-0 right-0 pointer-events-none hidden sm:block">
+          <div className="animate-glow-pulse h-[250px] w-[250px] rounded-full bg-orange-500/10 blur-[80px]"
                style={{ animationDelay: '2s' }} />
         </div>
 
@@ -45,8 +45,7 @@ export default function LandingPage() {
           </div>
 
           <h1
-            className="animate-fade-up text-5xl font-heading font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl"
-            style={{ animationDelay: '200ms' }}
+            className="text-5xl font-heading font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl"
           >
             QRIS dengan harga pas,{' '}
             <span className="text-[#F97316]">tanpa ribet.</span>
@@ -177,8 +176,8 @@ export default function LandingPage() {
 
               {/* Phone mockup */}
               <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="h-80 w-80 rounded-full bg-orange-500/10 blur-[80px]" />
+                <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+                  <div className="h-64 w-64 rounded-full bg-orange-500/10 blur-[60px]" />
                 </div>
 
                 <div className="relative w-[300px] rounded-[2.5rem] border-2 border-slate-700 bg-slate-900 shadow-2xl overflow-hidden">

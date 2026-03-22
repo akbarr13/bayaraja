@@ -40,26 +40,21 @@ export default function QrisPage() {
     merchant_name: string
     is_default: boolean
   }) {
-    const supabase = getBrowserSupabase()
+    const res = editing
+      ? await fetch(`/api/qris/${editing.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+      : await fetch('/api/qris', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
 
-    // If setting as default, unset others first
-    if (data.is_default) {
-      await supabase
-        .from('qris_accounts')
-        .update({ is_default: false })
-        .neq('id', editing?.id ?? '')
-    }
-
-    if (editing) {
-      const { error } = await supabase
-        .from('qris_accounts')
-        .update({ ...data, updated_at: new Date().toISOString() })
-        .eq('id', editing.id)
-      if (error) throw error
-    } else {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('qris_accounts').insert({ ...data, user_id: user!.id })
-      if (error) throw error
+    if (!res.ok) {
+      const json = await res.json()
+      throw new Error(json.error ?? 'Gagal menyimpan QRIS')
     }
 
     setShowForm(false)
@@ -69,8 +64,13 @@ export default function QrisPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return
-    const supabase = getBrowserSupabase()
-    await supabase.from('qris_accounts').delete().eq('id', deleteTarget)
+    const res = await fetch(`/api/qris/${deleteTarget}`, { method: 'DELETE' })
+    if (!res.ok) {
+      const json = await res.json()
+      setDeleteTarget(null)
+      toast(json.error ?? 'Gagal menghapus QRIS', 'error')
+      return
+    }
     setDeleteTarget(null)
     toast('QRIS berhasil dihapus')
     await loadAccounts()

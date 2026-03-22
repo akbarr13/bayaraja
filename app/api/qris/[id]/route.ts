@@ -63,6 +63,15 @@ export async function PATCH(
     const body = await req.json()
     const parsed = qrisAccountSchema.partial().parse(body)
 
+    // Unset other defaults server-side
+    if (parsed.is_default) {
+      await supabase
+        .from('qris_accounts')
+        .update({ is_default: false })
+        .eq('user_id', user.id)
+        .neq('id', id)
+    }
+
     const { data, error } = await supabase
       .from('qris_accounts')
       .update({ ...parsed, updated_at: new Date().toISOString() })
@@ -89,6 +98,20 @@ export async function DELETE(
   const { supabase, user } = await getSupabaseWithUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { count } = await supabase
+    .from('payment_links')
+    .select('id', { count: 'exact', head: true })
+    .eq('qris_account_id', id)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+
+  if (count && count > 0) {
+    return NextResponse.json(
+      { error: 'QRIS ini masih digunakan oleh payment link aktif. Nonaktifkan atau hapus payment link terlebih dahulu.' },
+      { status: 409 }
+    )
   }
 
   const { error } = await supabase

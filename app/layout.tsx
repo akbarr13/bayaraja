@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   },
   description:
     'Buat payment link dengan QRIS custom amount. Share link, customer scan, bayar langsung.',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
   openGraph: {
     title: 'Bayaraja — Payment Link Generator dengan QRIS',
     description:

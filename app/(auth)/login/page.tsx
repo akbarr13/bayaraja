@@ -43,7 +43,9 @@ export default function LoginPage() {
     <div>
       {/* Mobile logo */}
       <div className="mb-8 lg:hidden">
-        <span className="text-xl font-heading font-bold text-[#1E293B]">Bayaraja</span>
+        <Link href="/" className="text-xl font-heading font-bold text-[#1E293B] hover:opacity-70 transition-opacity">
+          Bayaraja
+        </Link>
       </div>
 
       <h1 className="text-2xl font-heading font-bold text-[#1E293B]">Selamat datang</h1>
@@ -72,6 +74,12 @@ export default function LoginPage() {
         {error && (
           <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</p>
         )}
+
+        <div className="flex justify-end">
+          <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-[#2563EB] transition-colors">
+            Lupa password?
+          </Link>
+        </div>
 
         <Button type="submit" className="w-full" loading={loading}>
           Masuk

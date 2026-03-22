@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function AuthLayout({
   children,
 }: {
@@ -16,12 +18,13 @@ export default function AuthLayout({
           />
         </div>
 
-        <span
-          className="animate-fade-in relative text-lg font-heading font-bold text-white tracking-tight"
+        <Link
+          href="/"
+          className="animate-fade-in relative text-lg font-heading font-bold text-white tracking-tight hover:opacity-80 transition-opacity"
           style={{ animationDelay: '100ms' }}
         >
           Bayaraja
-        </span>
+        </Link>
         <div>
           <p
             className="animate-fade-up text-3xl font-heading font-bold text-white leading-snug"

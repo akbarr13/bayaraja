@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { apiKeySchema } from '@/lib/validations'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
 import crypto from 'crypto'
 
 async function getSupabaseWithUser() {
@@ -49,6 +51,13 @@ export async function POST(req: NextRequest) {
   const { supabase, user } = await getSupabaseWithUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const allowed = await checkUserRateLimit(
+    user.id, 'api-keys', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds
+  )
+  if (!allowed) {
+    return NextResponse.json({ error: 'Terlalu banyak request.' }, { status: 429, headers: { 'Retry-After': '60' } })
   }
 
   try {
@@ -102,6 +111,13 @@ export async function DELETE(req: NextRequest) {
   const { supabase, user } = await getSupabaseWithUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const allowed = await checkUserRateLimit(
+    user.id, 'api-keys', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds
+  )
+  if (!allowed) {
+    return NextResponse.json({ error: 'Terlalu banyak request.' }, { status: 429, headers: { 'Retry-After': '60' } })
   }
 
   const { searchParams } = new URL(req.url)

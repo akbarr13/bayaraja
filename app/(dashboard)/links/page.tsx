@@ -9,7 +9,8 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { LinkForm } from '@/components/links/link-form'
 import { LinkCard } from '@/components/links/link-card'
 import { useToast } from '@/components/ui/toast'
-import { Plus, Link2, Search } from 'lucide-react'
+import { Plus, Link2, Search, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { useDebounce } from '@/lib/hooks/use-debounce'
 import type { PaymentLink, QrisAccount } from '@/lib/types'
 
 const PAGE_SIZE = 20
@@ -23,6 +24,14 @@ export default function LinksPage() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+
+  const debouncedSearch = useDebounce(search, 250)
+
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+
   const { toast } = useToast()
 
   async function loadData() {
@@ -46,9 +55,9 @@ export default function LinksPage() {
   const filteredLinks = useMemo(() => {
     return links.filter((link) => {
       const matchSearch =
-        search === '' ||
-        link.title.toLowerCase().includes(search.toLowerCase()) ||
-        link.slug.toLowerCase().includes(search.toLowerCase())
+        debouncedSearch === '' ||
+        link.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        link.slug.toLowerCase().includes(debouncedSearch.toLowerCase())
       const matchStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && link.is_active) ||
@@ -62,6 +71,48 @@ export default function LinksPage() {
   }, [filteredLinks, page])
 
   const totalPages = Math.ceil(filteredLinks.length / PAGE_SIZE)
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    const pageIds = pagedLinks.map((l) => l.id)
+    const allSelected = pageIds.every((id) => selected.has(id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allSelected) pageIds.forEach((id) => next.delete(id))
+      else pageIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
+
+  async function handleBulkAction(action: 'activate' | 'deactivate' | 'delete') {
+    if (selected.size === 0) return
+    setBulkLoading(true)
+    try {
+      const res = await fetch('/api/links/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selected), action }),
+      })
+      if (!res.ok) throw new Error()
+      const { affected } = await res.json()
+      setSelected(new Set())
+      toast(`${affected} link berhasil ${action === 'activate' ? 'diaktifkan' : action === 'deactivate' ? 'dinonaktifkan' : 'dihapus'}`)
+      await loadData()
+    } catch {
+      toast('Gagal melakukan aksi')
+    } finally {
+      setBulkLoading(false)
+      setBulkDeleteConfirm(false)
+    }
+  }
 
   async function handleSubmit(data: {
     qris_account_id: string
@@ -87,6 +138,35 @@ export default function LinksPage() {
     await loadData()
   }
 
+  async function handleToggle(id: string, currentIsActive: boolean) {
+    setTogglingIds((prev) => new Set(prev).add(id))
+    // Optimistic update
+    setLinks((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, is_active: !currentIsActive } : l))
+    )
+    try {
+      const res = await fetch(`/api/links/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !currentIsActive }),
+      })
+      if (!res.ok) throw new Error()
+      toast(`Link ${!currentIsActive ? 'diaktifkan' : 'dinonaktifkan'}`)
+    } catch {
+      // Revert on failure
+      setLinks((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, is_active: currentIsActive } : l))
+      )
+      toast('Gagal mengubah status link', 'error')
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return
     const supabase = getBrowserSupabase()
@@ -106,6 +186,9 @@ export default function LinksPage() {
       </div>
     )
   }
+
+  const pageIds = pagedLinks.map((l) => l.id)
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id))
 
   return (
     <div className="space-y-6">
@@ -151,6 +234,42 @@ export default function LinksPage() {
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
+          <span className="text-sm font-medium text-primary">{selected.size} dipilih</span>
+          <div className="flex gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              loading={bulkLoading}
+              onClick={() => handleBulkAction('activate')}
+            >
+              <ToggleRight className="h-4 w-4" />
+              Aktifkan
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              loading={bulkLoading}
+              onClick={() => handleBulkAction('deactivate')}
+            >
+              <ToggleLeft className="h-4 w-4" />
+              Nonaktifkan
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={bulkLoading}
+              onClick={() => setBulkDeleteConfirm(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Hapus
+            </Button>
+          </div>
+        </div>
+      )}
+
       {filteredLinks.length === 0 ? (
         links.length === 0 ? (
           <EmptyState
@@ -171,13 +290,40 @@ export default function LinksPage() {
         )
       ) : (
         <>
+          {/* Select all checkbox */}
+          {pagedLinks.length > 0 && (
+            <div className="flex items-center gap-2 px-1">
+              <input
+                type="checkbox"
+                id="select-all"
+                checked={allPageSelected}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 accent-primary cursor-pointer"
+              />
+              <label htmlFor="select-all" className="text-xs text-gray-500 cursor-pointer select-none">
+                Pilih semua di halaman ini
+              </label>
+            </div>
+          )}
+
           <div className="space-y-3">
             {pagedLinks.map((link) => (
-              <LinkCard
-                key={link.id}
-                link={link}
-                onDelete={() => setDeleteTarget(link.id)}
-              />
+              <div key={link.id} className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected.has(link.id)}
+                  onChange={() => toggleSelect(link.id)}
+                  className="mt-5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-primary cursor-pointer"
+                />
+                <div className="flex-1 min-w-0">
+                  <LinkCard
+                    link={link}
+                    onDelete={() => setDeleteTarget(link.id)}
+                    onToggle={() => handleToggle(link.id, link.is_active)}
+                    toggling={togglingIds.has(link.id)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
 
@@ -229,6 +375,16 @@ export default function LinksPage() {
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteConfirm}
+        title={`Hapus ${selected.size} Payment Link`}
+        description="Link yang dipilih akan dihapus permanen dan tidak bisa diakses lagi."
+        confirmLabel="Hapus Semua"
+        variant="danger"
+        onConfirm={() => handleBulkAction('delete')}
+        onCancel={() => setBulkDeleteConfirm(false)}
       />
     </div>
   )

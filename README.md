@@ -34,12 +34,15 @@ You create a payment link → Send URL to customer → Customer scans QR → Pay
 |---------|-------------|
 | 🔗 **Payment Links** | Generate unique links per transaction, share via WhatsApp/email |
 | 📱 **Dynamic QRIS** | Amount auto-embedded in QR — no manual input needed |
-| 📸 **Payment Proof** | Customers upload transfer screenshots, merchant confirms |
-| 📊 **Dashboard** | Transaction stats, revenue overview, and real-time payment status |
+| 📸 **Payment Proof** | Customers upload transfer screenshots, merchant confirms/rejects |
+| 📊 **Dashboard** | Stats, 30-day revenue & transaction trends chart |
+| 📋 **Transaction History** | Filterable, paginated list with CSV export |
+| 🔀 **Bulk Actions** | Activate, deactivate, or delete multiple links at once |
+| 🔔 **Webhooks** | Get notified on `transaction.created/confirmed/rejected` events |
 | 🔑 **REST API** | Integrate with external systems using API keys |
-| ⚡ **Status Polling** | Clients can poll payment status automatically after upload |
-| 🛡️ **Rate Limiting** | Built-in protection on every public endpoint |
-| 🔐 **Auth** | Secure login via Supabase Auth (email + password) |
+| ⚡ **Status Polling** | Exponential backoff polling after payment proof upload |
+| 🛡️ **Rate Limiting** | IP-based + per-link limits on all public endpoints |
+| 🔐 **Auth** | Email/password + Google OAuth via Supabase Auth |
 
 ---
 
@@ -259,12 +262,13 @@ All error responses follow the format: `{ "error": "error message" }`
 ```
 bayaraja/
 ├── app/
-│   ├── (auth)/          # Login & register pages
+│   ├── (auth)/          # Login, register, forgot/reset password
 │   ├── (dashboard)/     # Protected merchant dashboard
-│   │   ├── dashboard/   # Stats & recent transactions
-│   │   ├── links/       # Manage payment links
+│   │   ├── dashboard/   # Stats, trends chart & recent transactions
+│   │   ├── links/       # Manage payment links (bulk actions, search)
 │   │   ├── qris/        # Manage QRIS accounts
-│   │   ├── settings/    # Profile, password, API keys
+│   │   ├── transactions/# Transaction history with filters & CSV export
+│   │   ├── settings/    # Profile, API keys, webhooks
 │   │   └── docs/        # Interactive API documentation
 │   ├── api/             # API routes
 │   ├── pay/[slug]/      # Public payment page
@@ -312,9 +316,23 @@ Bayaraja is configured with `output: standalone`.
 
 ```bash
 npm run build
-# Upload .next/standalone/ + public/ to your server
-# Run: node .next/standalone/server.js
+
+# Copy static assets into standalone output
+cp -r .next/static .next/standalone/.next/static
+cp -r public .next/standalone/public
+
+# Zip for upload (use forward slashes for Linux compatibility)
+node -e "
+const {execSync} = require('child_process');
+const AdmZip = require('adm-zip'); // or use your preferred method
+"
+# Alternatively on Linux/WSL:
+cd .next/standalone && zip -r ../../standalone.zip .
+
+# Run: node server.js
 ```
+
+> **Windows users:** Use `ZipFile.CreateFromDirectory` via PowerShell or zip on WSL — avoid `Compress-Archive` as it produces Windows-style backslash paths that break on Linux extraction.
 
 For cPanel, use Phusion Passenger pointed at a `app.js` entry file that requires `server.js`.
 

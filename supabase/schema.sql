@@ -170,7 +170,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. Storage bucket for payment proofs
+-- 6b. Indexes for performance
+CREATE INDEX idx_qris_accounts_user_id ON qris_accounts(user_id);
+CREATE INDEX idx_payment_links_user_id ON payment_links(user_id);
+CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
+CREATE INDEX idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_link_status ON transactions(payment_link_id, status);
+
+-- 7. Webhooks
+CREATE TABLE webhooks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  label text NOT NULL,
+  url text NOT NULL,
+  secret text NOT NULL,
+  is_active boolean DEFAULT true,
+  last_triggered_at timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own webhooks"
+  ON webhooks FOR ALL
+  USING (auth.uid() = user_id);
+
+CREATE INDEX idx_webhooks_user_id ON webhooks(user_id);
+
+-- 8. Storage bucket for payment proofs
 -- Run this via Supabase Dashboard > Storage > New bucket
 -- Name: payment-proofs
 -- Public: false (private)

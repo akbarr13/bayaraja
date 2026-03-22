@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, QrCode, Link2, Settings, LogOut, X, BookOpen } from 'lucide-react'
+import { LayoutDashboard, QrCode, Link2, ReceiptText, Settings, LogOut, X, BookOpen } from 'lucide-react'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/qris', label: 'QRIS', icon: QrCode },
   { href: '/links', label: 'Payment Links', icon: Link2 },
+  { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
   { href: '/settings', label: 'Pengaturan', icon: Settings },
   { href: '/docs', label: 'API Docs', icon: BookOpen },
 ]
@@ -35,7 +36,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
     <div className="fixed inset-0 z-50 lg:hidden">
       <div className="fixed inset-0 bg-black/60" onClick={onClose} />
       <div className="fixed inset-y-0 left-0 w-60 bg-[#0F172A] flex flex-col shadow-xl">
-        <div className="flex h-16 items-center justify-between px-5">
+        <div className="flex h-16 items-center justify-between px-4">
           <span className="text-base font-heading font-bold text-white tracking-tight">Bayaraja</span>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 cursor-pointer">
             <X className="h-5 w-5" />

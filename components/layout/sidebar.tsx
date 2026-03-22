@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, QrCode, Link2, Settings, LogOut, BookOpen } from 'lucide-react'
+import { LayoutDashboard, QrCode, Link2, ReceiptText, Settings, LogOut, BookOpen } from 'lucide-react'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/qris', label: 'QRIS', icon: QrCode },
   { href: '/links', label: 'Payment Links', icon: Link2 },
+  { href: '/transactions', label: 'Transaksi', icon: ReceiptText },
   { href: '/settings', label: 'Pengaturan', icon: Settings },
   { href: '/docs', label: 'API Docs', icon: BookOpen },
 ]

@@ -42,6 +42,10 @@ export function LinkForm({ qrisAccounts, onSubmit, onCancel }: LinkFormProps) {
         throw new Error('Nominal harus angka positif')
       }
 
+      if (expiresAt && new Date(expiresAt) <= new Date()) {
+        throw new Error('Tanggal kadaluarsa harus di masa depan')
+      }
+
       await onSubmit({
         qris_account_id: qrisAccountId,
         title,
@@ -106,6 +110,7 @@ export function LinkForm({ qrisAccounts, onSubmit, onCancel }: LinkFormProps) {
         id="expires_at"
         label="Kadaluarsa (opsional)"
         type="datetime-local"
+        min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
         value={expiresAt}
         onChange={(e) => setExpiresAt(e.target.value)}
       />
