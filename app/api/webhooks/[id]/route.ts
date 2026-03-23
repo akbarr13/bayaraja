@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
+import { ApiError } from '@/lib/api-errors'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -27,6 +30,9 @@ export async function PATCH(
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const allowed = await checkUserRateLimit(user.id, 'webhook-update', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
+
   const body = await req.json()
   const sb = createServerSupabase()
   const { data, error } = await sb
@@ -48,6 +54,9 @@ export async function DELETE(
   const { id } = await props.params
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const allowed = await checkUserRateLimit(user.id, 'webhook-delete', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
 
   const sb = createServerSupabase()
   const { error } = await sb

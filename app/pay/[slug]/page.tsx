@@ -35,6 +35,20 @@ export default function PayPage(props: { params: Promise<{ slug: string }> }) {
   const [errorState, setErrorState] = useState<ErrorState | null>(null)
   const [loading, setLoading] = useState(true)
   const [transactionId, setTransactionId] = useState<string | null>(null)
+  const [referrer, setReferrer] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (document.referrer) {
+      try {
+        const url = new URL(document.referrer)
+        if (url.origin !== window.location.origin) {
+          setReferrer(document.referrer)
+        }
+      } catch {
+        // invalid URL, ignore
+      }
+    }
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -152,9 +166,9 @@ export default function PayPage(props: { params: Promise<{ slug: string }> }) {
           </div>
 
           {/* Step 2: Confirm / Success */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className={`rounded-2xl bg-white p-6 shadow-sm transition-all duration-500 ${transactionId ? 'ring-2 ring-green-200' : ''}`}>
             {transactionId ? (
-              <PaymentSuccess transactionId={transactionId} />
+              <PaymentSuccess transactionId={transactionId} referrer={referrer} />
             ) : (
               <PaymentForm
                 paymentLinkId={data.id}

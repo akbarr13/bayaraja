@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { qrisAccountSchema } from '@/lib/validations'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
+import { ApiError } from '@/lib/api-errors'
 
 async function getSupabaseWithUser() {
   const cookieStore = await cookies()
@@ -59,6 +62,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const allowed = await checkUserRateLimit(user.id, 'qris-update', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
+
   try {
     const body = await req.json()
     const parsed = qrisAccountSchema.partial().parse(body)
@@ -99,6 +105,9 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const allowedRL = await checkUserRateLimit(user.id, 'qris-delete', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowedRL) return ApiError.tooManyRequests()
 
   const { count } = await supabase
     .from('payment_links')

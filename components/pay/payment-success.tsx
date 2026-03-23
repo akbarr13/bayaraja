@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { CheckCircle2, Clock, XCircle, WifiOff, RefreshCw } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, WifiOff, RefreshCw, ArrowLeft } from 'lucide-react'
 
 interface PaymentSuccessProps {
   transactionId: string
+  referrer?: string | null
 }
 
 type TxStatus = 'pending' | 'confirmed' | 'rejected'
@@ -14,12 +15,18 @@ const MAX_INTERVAL = 60000
 const BACKOFF_FACTOR = 1.5
 const MAX_ERRORS = 5
 
-export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
+export function PaymentSuccess({ transactionId, referrer }: PaymentSuccessProps) {
   const [status, setStatus] = useState<TxStatus>('pending')
   const [networkError, setNetworkError] = useState(false)
+  const [visible, setVisible] = useState(false)
   const intervalRef = useRef(INITIAL_INTERVAL)
   const errorCountRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 10)
+    return () => clearTimeout(t)
+  }, [])
 
   function scheduleNext() {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -35,17 +42,16 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
         setNetworkError(false)
         if (data.status === 'confirmed' || data.status === 'rejected') {
           setStatus(data.status)
-          return // stop polling
+          return
         }
       }
     } catch {
       errorCountRef.current += 1
       if (errorCountRef.current >= MAX_ERRORS) {
         setNetworkError(true)
-        return // stop polling until manual retry
+        return
       }
     }
-    // Backoff
     intervalRef.current = Math.min(intervalRef.current * BACKOFF_FACTOR, MAX_INTERVAL)
     scheduleNext()
   }
@@ -66,12 +72,28 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionId, status])
 
+  const backButton = referrer && (
+    <a
+      href={referrer}
+      className="mt-5 flex items-center justify-center gap-1.5 text-sm text-gray-400 hover:text-primary transition-colors"
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Kembali ke {new URL(referrer).hostname}
+    </a>
+  )
+
+  const baseClass = `flex flex-col items-center text-center py-6 transition-all duration-500 ${
+    visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+  }`
+
   if (status === 'confirmed') {
     return (
-      <div className="flex flex-col items-center text-center py-6">
+      <div className={baseClass}>
         <div className="relative mb-5">
           <div className="absolute inset-0 rounded-full bg-green-100 animate-ping opacity-30" />
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+          <div
+            className={`relative flex h-16 w-16 items-center justify-center rounded-full bg-green-50 transition-transform duration-700 ${visible ? 'scale-100' : 'scale-50'}`}
+          >
             <CheckCircle2 className="h-9 w-9 text-green-500" />
           </div>
         </div>
@@ -83,15 +105,18 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
           <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
           <p className="text-xs font-medium text-green-700">Pembayaran berhasil</p>
         </div>
+        {backButton}
       </div>
     )
   }
 
   if (status === 'rejected') {
     return (
-      <div className="flex flex-col items-center text-center py-6">
+      <div className={baseClass}>
         <div className="relative mb-5">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+          <div
+            className={`relative flex h-16 w-16 items-center justify-center rounded-full bg-red-50 transition-transform duration-700 ${visible ? 'scale-100' : 'scale-50'}`}
+          >
             <XCircle className="h-9 w-9 text-red-400" />
           </div>
         </div>
@@ -99,13 +124,14 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
         <p className="mt-2 text-sm text-gray-500 max-w-xs leading-relaxed">
           Bukti pembayaran Anda ditolak oleh penjual. Hubungi penjual untuk informasi lebih lanjut.
         </p>
+        {backButton}
       </div>
     )
   }
 
   if (networkError) {
     return (
-      <div className="flex flex-col items-center text-center py-6">
+      <div className={baseClass}>
         <div className="relative mb-5">
           <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gray-50">
             <WifiOff className="h-9 w-9 text-gray-400" />
@@ -122,15 +148,19 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
           <RefreshCw className="h-3.5 w-3.5" />
           Coba Lagi
         </button>
+        {backButton}
       </div>
     )
   }
 
+  // pending
   return (
-    <div className="flex flex-col items-center text-center py-6">
+    <div className={baseClass}>
       <div className="relative mb-5">
         <div className="absolute inset-0 rounded-full bg-green-100 animate-ping opacity-30" />
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+        <div
+          className={`relative flex h-16 w-16 items-center justify-center rounded-full bg-green-50 transition-transform duration-700 ${visible ? 'scale-100' : 'scale-50'}`}
+        >
           <CheckCircle2 className="h-9 w-9 text-green-500" />
         </div>
       </div>
@@ -148,6 +178,8 @@ export function PaymentSuccess({ transactionId }: PaymentSuccessProps) {
       <p className="mt-5 text-xs text-gray-400">
         Halaman ini akan otomatis diperbarui.
       </p>
+
+      {backButton}
     </div>
   )
 }

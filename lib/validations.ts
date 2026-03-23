@@ -65,3 +65,25 @@ export const paymentProofSchema = z.object({
 export const linkPatchSchema = z.object({
   is_active: z.boolean(),
 })
+
+/** Block SSRF: reject localhost, private IPs, and non-HTTPS URLs */
+const PRIVATE_HOSTNAME_RE = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|0\.0\.0\.0|\[::1?\])$/i
+
+export const webhookUrlSchema = z
+  .string()
+  .url('URL tidak valid')
+  .max(500, 'URL terlalu panjang')
+  .refine((url) => {
+    try {
+      const parsed = new URL(url)
+      // Must be HTTPS
+      if (parsed.protocol !== 'https:') return false
+      // Block private/reserved hostnames
+      if (PRIVATE_HOSTNAME_RE.test(parsed.hostname)) return false
+      // Block .local, .internal TLDs
+      if (/\.(local|internal|localhost)$/i.test(parsed.hostname)) return false
+      return true
+    } catch {
+      return false
+    }
+  }, { message: 'Webhook URL harus HTTPS dan tidak boleh mengarah ke alamat lokal/private.' })

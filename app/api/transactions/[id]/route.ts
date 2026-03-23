@@ -3,6 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { transactionStatusSchema } from '@/lib/validations'
 import { fireWebhooks } from '@/lib/webhook'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
+import { ApiError } from '@/lib/api-errors'
 
 async function getSupabaseWithUser() {
   const cookieStore = await cookies()
@@ -36,9 +39,48 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const allowed = await checkUserRateLimit(user.id, 'transaction-update', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
+
   try {
     const body = await req.json()
     const parsed = transactionStatusSchema.parse(body)
+
+    // Fetch current transaction to validate state transition
+    const { data: current, error: fetchErr } = await supabase
+      .from('transactions')
+      .select('status')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (fetchErr || !current) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    // Block same-status updates
+    if (current.status === parsed.status) {
+      return NextResponse.json(
+        { error: `Transaksi sudah berstatus ${parsed.status}.` },
+        { status: 409 }
+      )
+    }
+
+    // Block confirmed → rejected (final state)
+    if (current.status === 'confirmed') {
+      return NextResponse.json(
+        { error: 'Transaksi yang sudah dikonfirmasi tidak bisa diubah.' },
+        { status: 409 }
+      )
+    }
+
+    // Block rejected → confirmed (final state)
+    if (current.status === 'rejected') {
+      return NextResponse.json(
+        { error: 'Transaksi yang sudah ditolak tidak bisa diubah.' },
+        { status: 409 }
+      )
+    }
 
     const { data, error } = await supabase
       .from('transactions')
@@ -79,6 +121,7 @@ export async function PATCH(
         : 'transaction.rejected' as const
       fireWebhooks(user.id, eventName, {
         transaction_id: id,
+        payment_link_id: data.payment_link_id,
         status: parsed.status,
         notes: parsed.notes ?? null,
       })

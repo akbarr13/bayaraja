@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
@@ -12,7 +12,16 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sessionValid, setSessionValid] = useState<boolean | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    async function check() {
+      const { data } = await getBrowserSupabase().auth.getSession()
+      setSessionValid(!!data.session)
+    }
+    check()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,6 +47,37 @@ export default function ResetPasswordPage() {
     }
   }
 
+  if (sessionValid === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!sessionValid) {
+    return (
+      <div>
+        <div className="mb-8 lg:hidden">
+          <Link href="/" className="text-xl font-heading font-bold text-[#1E293B] hover:opacity-70 transition-opacity">
+            Bayaraja
+          </Link>
+        </div>
+        <div className="rounded-xl bg-red-50 border border-red-200 p-5 text-center">
+          <p className="font-medium text-red-800">Link tidak valid atau sudah kadaluarsa</p>
+          <p className="mt-1 text-sm text-red-700">
+            Minta link reset password baru dan coba lagi.
+          </p>
+        </div>
+        <p className="mt-6 text-center text-sm text-gray-500">
+          <Link href="/forgot-password" className="font-medium text-[#2563EB] hover:underline">
+            Minta link baru
+          </Link>
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="mb-8 lg:hidden">
@@ -57,6 +97,7 @@ export default function ResetPasswordPage() {
           placeholder="Minimal 8 karakter"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          showToggle
           required
         />
         <Input
@@ -66,6 +107,7 @@ export default function ResetPasswordPage() {
           placeholder="Ulangi password baru"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
+          showToggle
           required
         />
 

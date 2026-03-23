@@ -3,6 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { linkPatchSchema } from '@/lib/validations'
 import { ZodError } from 'zod'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
+import { ApiError } from '@/lib/api-errors'
 
 async function getSupabaseWithUser() {
   const cookieStore = await cookies()
@@ -60,6 +63,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const allowed = await checkUserRateLimit(user.id, 'link-update', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
+
   let is_active: boolean
   try {
     const body = await req.json()
@@ -95,6 +101,9 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const allowed = await checkUserRateLimit(user.id, 'link-delete', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
 
   const { error } = await supabase
     .from('payment_links')

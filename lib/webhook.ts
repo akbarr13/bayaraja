@@ -46,27 +46,45 @@ export async function fireWebhooks(
           .update(body)
           .digest('hex')
 
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 5000)
+        const headers = {
+          'Content-Type': 'application/json',
+          'X-Bayaraja-Event': event,
+          'X-Bayaraja-Signature': `sha256=${sig}`,
+        }
 
-        try {
-          await fetch(wh.url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Bayaraja-Event': event,
-              'X-Bayaraja-Signature': `sha256=${sig}`,
-            },
-            body,
-            signal: controller.signal,
-          })
-          // Record last delivery
+        let success = false
+        for (let attempt = 0; attempt <= 1; attempt++) {
+          if (attempt === 1) {
+            // Wait 5s before retry
+            await new Promise((resolve) => setTimeout(resolve, 5000))
+          }
+
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 5000)
+
+          try {
+            const res = await fetch(wh.url, {
+              method: 'POST',
+              headers,
+              body,
+              signal: controller.signal,
+            })
+            if (res.ok) {
+              success = true
+              break
+            }
+          } catch {
+            // Timeout or network error — retry if first attempt
+          } finally {
+            clearTimeout(timeout)
+          }
+        }
+
+        if (success) {
           await sb
             .from('webhooks')
             .update({ last_triggered_at: new Date().toISOString() })
             .eq('id', wh.id)
-        } finally {
-          clearTimeout(timeout)
         }
       })
     )

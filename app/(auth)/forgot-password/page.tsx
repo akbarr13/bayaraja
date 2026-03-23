@@ -1,19 +1,39 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { getBrowserSupabase } from '@/lib/supabase/browser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+const RESEND_COOLDOWN = 60
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [])
+
+  function startCooldown() {
+    setCooldown(RESEND_COOLDOWN)
+    timerRef.current = setInterval(() => {
+      setCooldown((c) => {
+        if (c <= 1) {
+          clearInterval(timerRef.current!)
+          return 0
+        }
+        return c - 1
+      })
+    }, 1000)
+  }
+
+  async function sendReset() {
     setError('')
     setLoading(true)
     try {
@@ -23,11 +43,17 @@ export default function ForgotPasswordPage() {
       })
       if (error) throw error
       setSent(true)
+      startCooldown()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Gagal mengirim email')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    await sendReset()
   }
 
   if (sent) {
@@ -44,7 +70,23 @@ export default function ForgotPasswordPage() {
             Cek inbox <strong>{email}</strong> dan klik link untuk reset password.
           </p>
         </div>
-        <p className="mt-6 text-center text-sm text-gray-500">
+
+        {error && (
+          <p className="mt-3 text-sm text-red-600 bg-red-50 rounded-lg p-3 text-center">{error}</p>
+        )}
+
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={sendReset}
+            disabled={cooldown > 0 || loading}
+            className="text-sm font-medium text-[#2563EB] hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed"
+          >
+            {cooldown > 0 ? `Kirim ulang (${cooldown}s)` : 'Kirim ulang'}
+          </button>
+        </div>
+
+        <p className="mt-4 text-center text-sm text-gray-500">
           <Link href="/login" className="font-medium text-[#2563EB] hover:underline">
             Kembali ke login
           </Link>
@@ -79,7 +121,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</p>
         )}
 
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full" loading={loading} disabled={loading}>
           Kirim link reset
         </Button>
       </form>

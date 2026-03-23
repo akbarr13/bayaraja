@@ -104,6 +104,7 @@ export default function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           minLength={6}
+          showToggle
           required
         />
 

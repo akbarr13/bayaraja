@@ -3,6 +3,9 @@ import { createServerClient } from '@supabase/ssr'
 import { createServerSupabase } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { checkUserRateLimit } from '@/lib/rate-limit'
+import { LIMITS } from '@/lib/constants'
+import { ApiError } from '@/lib/api-errors'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -28,6 +31,9 @@ const bulkSchema = z.object({
 export async function POST(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const allowed = await checkUserRateLimit(user.id, 'link-bulk', LIMITS.rateLimit.authenticated.max, LIMITS.rateLimit.authenticated.windowSeconds)
+  if (!allowed) return ApiError.tooManyRequests()
 
   try {
     const body = await req.json()
