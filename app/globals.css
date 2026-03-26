@@ -9,6 +9,7 @@
 }
 
 @theme inline {
+  --spacing-18: 4.5rem;
   --color-primary: var(--color-primary);
   --color-secondary: var(--color-secondary);
   --color-cta: var(--color-cta);
@@ -22,6 +23,17 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-glow-pulse: glow-pulse 4s ease-in-out infinite;
   --animate-slide-right: slide-right 0.5s ease both;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 3.5rem; /* navbar h-14 mobile */
+}
+
+@media (min-width: 640px) {
+  html {
+    scroll-padding-top: 4.5rem; /* navbar h-18 desktop */
+  }
 }
 
 body {
@@ -56,8 +68,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.15; }
-  50%       { opacity: 0.28; }
+  0%, 100% { opacity: 0.08; }
+  50%       { opacity: 0.15; }
 }
 
 @keyframes slide-right {
