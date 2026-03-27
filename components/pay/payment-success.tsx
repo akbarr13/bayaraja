@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { CheckCircle2, Clock, XCircle, WifiOff, RefreshCw, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, XCircle, WifiOff, RefreshCw, ArrowLeft, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface PaymentSuccessProps {
   transactionId: string
   referrer?: string | null
+  onRetry?: () => void
 }
 
 type TxStatus = 'pending' | 'confirmed' | 'rejected'
@@ -15,7 +17,7 @@ const MAX_INTERVAL = 60000
 const BACKOFF_FACTOR = 1.5
 const MAX_ERRORS = 5
 
-export function PaymentSuccess({ transactionId, referrer }: PaymentSuccessProps) {
+export function PaymentSuccess({ transactionId, referrer, onRetry }: PaymentSuccessProps) {
   const [status, setStatus] = useState<TxStatus>('pending')
   const [networkError, setNetworkError] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -124,6 +126,11 @@ export function PaymentSuccess({ transactionId, referrer }: PaymentSuccessProps)
         <p className="mt-2 text-sm text-gray-500 max-w-xs leading-relaxed">
           Bukti pembayaran Anda ditolak oleh penjual. Hubungi penjual untuk informasi lebih lanjut.
         </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" className="mt-5" onClick={onRetry}>
+            Upload Ulang Bukti
+          </Button>
+        )}
         {backButton}
       </div>
     )
@@ -143,7 +150,7 @@ export function PaymentSuccess({ transactionId, referrer }: PaymentSuccessProps)
         </p>
         <button
           onClick={retryPolling}
-          className="mt-5 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors"
+          className="mt-5 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Coba Lagi
@@ -171,13 +178,9 @@ export function PaymentSuccess({ transactionId, referrer }: PaymentSuccessProps)
       </p>
 
       <div className="mt-5 flex items-center gap-2 rounded-full bg-amber-50 border border-amber-200 px-4 py-2">
-        <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+        <Loader2 className="h-4 w-4 text-amber-500 flex-shrink-0 animate-spin" />
         <p className="text-xs font-medium text-amber-700">Menunggu konfirmasi dari penjual</p>
       </div>
-
-      <p className="mt-5 text-xs text-gray-400">
-        Halaman ini akan otomatis diperbarui.
-      </p>
 
       {backButton}
     </div>

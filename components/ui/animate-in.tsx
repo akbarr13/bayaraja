@@ -26,8 +26,8 @@ export function AnimateIn({
     const el = ref.current
     if (!el) return
 
-    // Fallback: show after 1.2s in case observer never fires
-    const fallback = setTimeout(() => setVisible(true), 1200 + delay)
+    // Fallback: show after 600ms in case observer never fires
+    const fallback = setTimeout(() => setVisible(true), 600 + delay)
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -47,7 +47,7 @@ export function AnimateIn({
   }, [threshold, delay])
 
   const revealClass =
-    variant === 'left' ? 'reveal-left' : variant === 'fade' ? 'reveal' : 'reveal'
+    variant === 'left' ? 'reveal-left' : variant === 'fade' ? 'reveal-fade' : 'reveal'
 
   return (
     <div

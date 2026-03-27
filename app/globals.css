@@ -101,7 +101,8 @@ h1, h2, h3, h4, h5, h6 {
     transform: none;
   }
   .reveal,
-  .reveal-left {
+  .reveal-left,
+  .reveal-fade {
     opacity: 1;
     transform: none;
     transition: none;
@@ -127,4 +128,12 @@ h1, h2, h3, h4, h5, h6 {
 .reveal-left.is-visible {
   opacity: 1;
   transform: translateX(0);
+}
+
+.reveal-fade {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.reveal-fade.is-visible {
+  opacity: 1;
 }

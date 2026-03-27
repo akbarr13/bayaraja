@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Upload, ImageIcon, X } from 'lucide-react'
@@ -33,6 +33,14 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previewRef = useRef<string | null>(null)
+
+  // Revoke blob URL on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current)
+    }
+  }, [])
 
   function handleFile(selected: File) {
     if (!ALLOWED_IMAGE_TYPES.includes(selected.type as typeof ALLOWED_IMAGE_TYPES[number])) {
@@ -45,7 +53,9 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
     }
     setError('')
     setFile(selected)
-    setPreview(URL.createObjectURL(selected))
+    const objectUrl = URL.createObjectURL(selected)
+    previewRef.current = objectUrl
+    setPreview(objectUrl)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -57,7 +67,11 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
 
   function clearFile() {
     setFile(null)
-    if (preview) URL.revokeObjectURL(preview)
+    setError('')
+    if (previewRef.current) {
+      URL.revokeObjectURL(previewRef.current)
+      previewRef.current = null
+    }
     setPreview(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -116,19 +130,6 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Step header */}
-      <div className="flex items-center gap-3 pb-1">
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-          2
-        </div>
-        <div>
-          <h2 className="text-sm font-semibold text-text">Konfirmasi Pembayaran</h2>
-          <p className="text-xs text-gray-400">Upload bukti transfer setelah bayar</p>
-        </div>
-      </div>
-
-      <div className="h-px bg-gray-100" />
-
       {/* File upload */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-text">
@@ -141,6 +142,7 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
             <button
               type="button"
               onClick={clearFile}
+              aria-label="Hapus file"
               className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             >
               <X className="h-4 w-4" />
@@ -154,11 +156,15 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
           </div>
         ) : (
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Pilih file bukti pembayaran"
             onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
             onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-7 transition-colors
+            className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-7 transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none
               ${dragging
                 ? 'border-primary bg-primary/5'
                 : 'border-gray-200 bg-gray-50 hover:border-primary/40 hover:bg-primary/5'
@@ -227,7 +233,6 @@ export function PaymentForm({ paymentLinkId, onSuccess }: PaymentFormProps) {
       <Button type="submit" variant="cta" className="w-full" loading={loading}>
         Kirim Bukti Pembayaran
       </Button>
-
     </form>
   )
 }
