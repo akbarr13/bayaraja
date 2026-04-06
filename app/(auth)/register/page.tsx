@@ -8,6 +8,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckCircle } from 'lucide-react'
 
+const AUTH_ERRORS: Record<string, string> = {
+  'Invalid login credentials': 'Email atau password salah.',
+  'Email not confirmed': 'Email belum dikonfirmasi. Cek inbox Anda.',
+  'User already registered': 'Email ini sudah terdaftar.',
+  'Password should be at least 6 characters': 'Password minimal 6 karakter.',
+  'signup disabled': 'Pendaftaran sementara dinonaktifkan.',
+  'Email rate limit exceeded': 'Terlalu banyak percobaan. Coba lagi nanti.',
+}
+
+function mapAuthError(message: string): string {
+  return AUTH_ERRORS[message] ?? message
+}
+
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
@@ -34,7 +47,7 @@ export default function RegisterPage() {
       if (error) throw error
       setSuccess(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registrasi gagal')
+      setError(mapAuthError(err instanceof Error ? err.message : 'Registrasi gagal'))
     } finally {
       setLoading(false)
     }

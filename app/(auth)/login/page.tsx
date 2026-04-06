@@ -7,11 +7,25 @@ import { getBrowserSupabase } from '@/lib/supabase/browser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+const AUTH_ERRORS: Record<string, string> = {
+  'Invalid login credentials': 'Email atau password salah.',
+  'Email not confirmed': 'Email belum dikonfirmasi. Cek inbox Anda.',
+  'User already registered': 'Email ini sudah terdaftar.',
+  'Password should be at least 6 characters': 'Password minimal 6 karakter.',
+  'signup disabled': 'Pendaftaran sementara dinonaktifkan.',
+  'Email rate limit exceeded': 'Terlalu banyak percobaan. Coba lagi nanti.',
+}
+
+function mapAuthError(message: string): string {
+  return AUTH_ERRORS[message] ?? message
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const router = useRouter()
 
   async function handleLogin(e: React.FormEvent) {
@@ -25,18 +39,20 @@ export default function LoginPage() {
       router.refresh()
       router.push('/dashboard')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login gagal')
+      setError(mapAuthError(err instanceof Error ? err.message : 'Login gagal'))
     } finally {
       setLoading(false)
     }
   }
 
   async function handleGoogleLogin() {
+    setGoogleLoading(true)
     const supabase = getBrowserSupabase()
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     })
+    setGoogleLoading(false)
   }
 
   return (
@@ -96,7 +112,8 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-[#1E293B] hover:bg-gray-50 transition-colors cursor-pointer"
+        disabled={googleLoading}
+        className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-[#1E293B] hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />

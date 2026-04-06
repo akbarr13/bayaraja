@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useToast } from '@/components/ui/toast'
-import { User, Lock, Key, Plus, Trash2, Copy, Check, Eye, EyeOff, Webhook } from 'lucide-react'
+import { User, Lock, Key, Plus, Trash2, Copy, Check, Eye, EyeOff, Webhook, Send } from 'lucide-react'
 import { copyToClipboard } from '@/lib/clipboard'
 import type { ApiKey } from '@/lib/types'
 
@@ -55,6 +55,7 @@ const [currentPassword, setCurrentPassword] = useState('')
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [profileMsg, setProfileMsg] = useState('')
   const [passwordMsg, setPasswordMsg] = useState('')
+  const [passwordError, setPasswordError] = useState(false)
 
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [showKeyModal, setShowKeyModal] = useState(false)
@@ -73,6 +74,7 @@ const [currentPassword, setCurrentPassword] = useState('')
   const [generatedSecret, setGeneratedSecret] = useState('')
   const [secretCopied, setSecretCopied] = useState(false)
   const [deleteWebhookTarget, setDeleteWebhookTarget] = useState<string | null>(null)
+  const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null)
 
   const { toast } = useToast()
 
@@ -118,22 +120,25 @@ const [currentPassword, setCurrentPassword] = useState('')
 
   async function handlePasswordUpdate(e: React.FormEvent) {
     e.preventDefault()
-    if (!currentPassword) { setPasswordMsg('Masukkan password saat ini.'); return }
-    if (newPassword.length < 6) { setPasswordMsg('Password baru minimal 6 karakter.'); return }
+    if (!currentPassword) { setPasswordMsg('Masukkan password saat ini.'); setPasswordError(true); return }
+    if (newPassword.length < 6) { setPasswordMsg('Password baru minimal 6 karakter.'); setPasswordError(true); return }
     setPasswordLoading(true)
     setPasswordMsg('')
     const supabase = getBrowserSupabase()
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: currentPassword })
     if (signInErr) {
       setPasswordMsg('Password saat ini salah.')
+      setPasswordError(true)
       setPasswordLoading(false)
       return
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) {
       setPasswordMsg(error.message)
+      setPasswordError(true)
     } else {
       setPasswordMsg('Password berhasil diubah.')
+      setPasswordError(false)
       setCurrentPassword('')
       setNewPassword('')
     }
@@ -200,6 +205,23 @@ const [currentPassword, setCurrentPassword] = useState('')
     await loadWebhooks()
   }
 
+  async function handleTestWebhook(id: string) {
+    setTestingWebhookId(id)
+    try {
+      const res = await fetch(`/api/webhooks/${id}/test`, { method: 'POST' })
+      if (res.ok) {
+        toast('Test webhook berhasil dikirim')
+      } else {
+        const json = await res.json()
+        toast(json.error || 'Gagal mengirim test webhook', 'error')
+      }
+    } catch {
+      toast('Gagal mengirim test webhook', 'error')
+    } finally {
+      setTestingWebhookId(null)
+    }
+  }
+
   async function confirmDeleteWebhook() {
     if (!deleteWebhookTarget) return
     await fetch(`/api/webhooks/${deleteWebhookTarget}`, { method: 'DELETE' })
@@ -260,7 +282,7 @@ const [currentPassword, setCurrentPassword] = useState('')
                 minLength={6}
               />
               {passwordMsg && (
-                <p className={`text-sm ${passwordMsg.includes('salah') || passwordMsg.includes('minimal') ? 'text-red-600' : 'text-green-600'}`}>
+                <p className={`text-sm ${passwordError ? 'text-red-600' : 'text-green-600'}`}>
                   {passwordMsg}
                 </p>
               )}
@@ -293,11 +315,20 @@ const [currentPassword, setCurrentPassword] = useState('')
                         <p className="text-xs text-gray-400 truncate">{wh.url}</p>
                         {wh.last_triggered_at && (
                           <p className="text-xs text-gray-400">
-                            Terakhir: {new Date(wh.last_triggered_at).toLocaleDateString('id-ID')}
+                            Terakhir: {new Date(wh.last_triggered_at).toLocaleString('id-ID')}
                           </p>
                         )}
                       </div>
                       <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Kirim test payload"
+                          loading={testingWebhookId === wh.id}
+                          onClick={() => handleTestWebhook(wh.id)}
+                        >
+                          <Send className="h-4 w-4 text-gray-500" />
+                        </Button>
                         <button
                           onClick={() => toggleWebhook(wh.id, !wh.is_active)}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${

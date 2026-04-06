@@ -6,10 +6,13 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ShareButton } from '@/components/links/share-button'
+import { useToast } from '@/components/ui/toast'
 import { formatRp } from '@/lib/utils'
-import { ArrowLeft, CheckCircle, XCircle, Image as ImageIcon, Download } from 'lucide-react'
+import { ArrowLeft, CheckCircle, XCircle, Image as ImageIcon, Download, X } from 'lucide-react'
 import Link from 'next/link'
 import type { PaymentLink, Transaction } from '@/lib/types'
+
+const TX_PAGE_SIZE = 20
 
 export default function LinkDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = use(props.params)
@@ -17,6 +20,8 @@ export default function LinkDetailPage(props: { params: Promise<{ id: string }> 
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [proofUrl, setProofUrl] = useState<string | null>(null)
+  const [visibleCount, setVisibleCount] = useState(TX_PAGE_SIZE)
+  const { toast } = useToast()
 
   async function loadData() {
     const supabase = getBrowserSupabase()
@@ -47,8 +52,17 @@ export default function LinkDetailPage(props: { params: Promise<{ id: string }> 
       .from('transactions')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', txId)
+    toast(status === 'confirmed' ? 'Transaksi dikonfirmasi' : 'Transaksi ditolak')
     await loadData()
   }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setProofUrl(null)
+    }
+    if (proofUrl) document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [proofUrl])
 
   async function viewProof(txId: string) {
     const res = await fetch(`/api/transactions/${txId}/proof`)
@@ -119,7 +133,7 @@ export default function LinkDetailPage(props: { params: Promise<{ id: string }> 
           <p className="text-sm text-gray-500">Belum ada transaksi.</p>
         ) : (
           <div className="space-y-3">
-            {transactions.map((tx) => (
+            {transactions.slice(0, visibleCount).map((tx) => (
               <div
                 key={tx.id}
                 className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-gray-100 p-4"
@@ -150,22 +164,34 @@ export default function LinkDetailPage(props: { params: Promise<{ id: string }> 
                       <Button
                         variant="primary"
                         size="sm"
+                        aria-label="Konfirmasi transaksi"
                         onClick={() => handleUpdateStatus(tx.id, 'confirmed')}
                       >
                         <CheckCircle className="h-4 w-4" />
+                        <span className="hidden sm:inline">Konfirmasi</span>
                       </Button>
                       <Button
                         variant="danger"
                         size="sm"
+                        aria-label="Tolak transaksi"
                         onClick={() => handleUpdateStatus(tx.id, 'rejected')}
                       >
                         <XCircle className="h-4 w-4" />
+                        <span className="hidden sm:inline">Tolak</span>
                       </Button>
                     </>
                   )}
                 </div>
               </div>
             ))}
+            {visibleCount < transactions.length && (
+              <button
+                onClick={() => setVisibleCount((c) => c + TX_PAGE_SIZE)}
+                className="w-full py-2 text-sm text-primary hover:underline"
+              >
+                Lihat lebih banyak ({transactions.length - visibleCount} lagi)
+              </button>
+            )}
           </div>
         )}
       </Card>
@@ -175,10 +201,18 @@ export default function LinkDetailPage(props: { params: Promise<{ id: string }> 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setProofUrl(null)}
         >
+          <button
+            aria-label="Tutup"
+            className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            onClick={() => setProofUrl(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
           <img
             src={proofUrl}
             alt="Bukti pembayaran"
             className="max-h-[80vh] max-w-full rounded-lg"
+            onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}

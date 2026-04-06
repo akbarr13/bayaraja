@@ -379,8 +379,8 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Legal</p>
               <div className="space-y-2.5">
-                <span className="block text-sm text-slate-500 cursor-default" title="Segera hadir">Syarat & Ketentuan</span>
-                <span className="block text-sm text-slate-500 cursor-default" title="Segera hadir">Kebijakan Privasi</span>
+                <span className="block text-sm text-slate-500 cursor-default">Syarat & Ketentuan <span className="text-slate-400 text-xs">(segera hadir)</span></span>
+                <span className="block text-sm text-slate-500 cursor-default">Kebijakan Privasi <span className="text-slate-400 text-xs">(segera hadir)</span></span>
               </div>
             </div>
           </div>
