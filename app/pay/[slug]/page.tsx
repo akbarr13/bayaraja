@@ -76,8 +76,8 @@ export default function PayPage(props: { params: Promise<{ slug: string }> }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
-  // currentStep: 1 = scan QR, 2 = upload form, 3 = done (success/pending/rejected)
-  const currentStep = transactionId ? 3 : 2
+  // currentStep: 1 = scan QR (default), 2 = upload form (unused transition), 3 = done
+  const currentStep = transactionId ? 3 : 1
 
   if (loading) {
     return (
@@ -148,7 +148,9 @@ export default function PayPage(props: { params: Promise<{ slug: string }> }) {
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Top bar */}
       <div className="border-b border-gray-100 bg-white px-4 py-3 text-center">
-        <span className="text-sm font-heading font-bold text-text">Bayaraja</span>
+        <span className="text-sm font-heading font-bold text-text">
+          {data.merchant_name ? `Bayar ke ${data.merchant_name}` : 'Bayaraja'}
+        </span>
       </div>
 
       <div className="flex-1 px-4 py-6 md:py-10">

@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "next build && node scripts/deploy-ftp.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.3",
+    "basic-ftp": "^5.2.0",
     "clsx": "^2.1.1",
+    "fflate": "^0.8.2",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.577.0",
     "nanoid": "^5.1.7",

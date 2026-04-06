@@ -24,6 +24,7 @@ export default function LinksPage() {
   const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amount_desc' | 'name_asc'>('newest')
 
   const debouncedSearch = useDebounce(search, 250)
 
@@ -53,7 +54,7 @@ export default function LinksPage() {
   }, [])
 
   const filteredLinks = useMemo(() => {
-    return links.filter((link) => {
+    const filtered = links.filter((link) => {
       const matchSearch =
         debouncedSearch === '' ||
         link.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
@@ -64,7 +65,11 @@ export default function LinksPage() {
         (statusFilter === 'inactive' && !link.is_active)
       return matchSearch && matchStatus
     })
-  }, [links, search, statusFilter])
+    if (sortOrder === 'oldest') return [...filtered].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    if (sortOrder === 'amount_desc') return [...filtered].sort((a, b) => b.amount - a.amount)
+    if (sortOrder === 'name_asc') return [...filtered].sort((a, b) => a.title.localeCompare(b.title, 'id'))
+    return filtered // newest — already sorted by loadData
+  }, [links, debouncedSearch, statusFilter, sortOrder])
 
   const pagedLinks = useMemo(() => {
     return filteredLinks.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
@@ -197,6 +202,7 @@ export default function LinksPage() {
         <Button
           onClick={() => setShowForm(true)}
           disabled={qrisAccounts.length === 0}
+          title={qrisAccounts.length === 0 ? 'Tambahkan QRIS terlebih dahulu' : undefined}
         >
           <Plus className="h-4 w-4" />
           Buat Link
@@ -216,7 +222,7 @@ export default function LinksPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Cari judul atau slug..."
+              placeholder="Cari nama link..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -230,6 +236,16 @@ export default function LinksPage() {
             <option value="all">Semua</option>
             <option value="active">Aktif</option>
             <option value="inactive">Nonaktif</option>
+          </select>
+          <select
+            value={sortOrder}
+            onChange={(e) => { setSortOrder(e.target.value as typeof sortOrder); setPage(0) }}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          >
+            <option value="newest">Terbaru</option>
+            <option value="oldest">Terlama</option>
+            <option value="amount_desc">Nominal Terbesar</option>
+            <option value="name_asc">Nama A-Z</option>
           </select>
         </div>
       )}
