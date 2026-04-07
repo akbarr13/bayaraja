@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/landing/navbar'
 import { Footer } from '@/components/landing/footer'
-import { LandingContent } from '@/components/landing/landing-content'
+import { ContactContent } from '@/components/landing/contact-content'
 import { WhatsappFab } from '@/components/landing/whatsapp-fab'
 
 export const metadata: Metadata = {
-  title: 'Bayaraja — Payment Link Generator dengan QRIS',
-  description: 'Buat payment link dengan QRIS custom amount. Share link, customer scan, bayar langsung.',
+  title: 'Hubungi Kami',
+  description: 'Ada pertanyaan? Hubungi tim Bayaraja melalui email, GitHub, atau kirim pesan langsung.',
 }
 
-export default function LandingPage() {
+export default function ContactPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-900">
       <a
@@ -18,8 +18,8 @@ export default function LandingPage() {
       >
         Langsung ke konten utama
       </a>
-      <Navbar isLandingPage />
-      <LandingContent />
+      <Navbar isLandingPage={false} />
+      <ContactContent />
       <Footer />
       <WhatsappFab />
     </div>
